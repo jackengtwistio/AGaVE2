@@ -1,18 +1,18 @@
 # Directory of the host genome index for STAR
 
-genome_dir: "../../refs/human/STAR"
+genome_dir: "/home/azureuser/refs/human/gencode_v48/STAR"
 
 # Directory of the viral database in fasta format
 
-virus_fasta: "../../refs/virus/virus.fa"
+virus_fasta: "/home/azureuser/refs/viral/C-RVDBv28.0.fasta"
 
 # Directory of the viral database in mmi format (for minimap2)
 
-virus_db: "../../refs/virus/virus.mmi"
+virus_db: "/home/azureuser/refs/viral/C-RVDBv28.0.mmi"
 
 # Directory of the host genome in mmi format (for minimap2)
 
-human_minimap: "../../refs/human/human.mmi"
+human_minimap: "/home/azureuser/refs/human/GRCh38_gencode_v48/hg38.mmi"
 
 # Number of cores to use
 
