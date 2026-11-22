@@ -1,6 +1,6 @@
 # Directory of the host genome index for STAR
 
-genome_dir: "/home/azureuser/refs/human/gencode_v48/STAR"
+genome_dir: "/home/azureuser/refs/human/GRCh38_gencode_v48/STAR"
 
 # Directory of the viral database in fasta format
 
