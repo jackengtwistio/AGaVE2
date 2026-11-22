@@ -52,7 +52,15 @@ rule host_mapping:
 	output:
 		u1 = "unmapped/{sample}_1.fastq",
 		u2 = "unmapped/{sample}_2.fastq",
-		u3 = "unmapped/{sample}_mapped.bam"
+		u3 = "unmapped/{sample}_mapped.bam",
+		singletons = "unmapped/{sample}_singletons.fastq",
+		gc = "results/{sample}_gene_count.tsv"
+#optional intermediate BAM files
+#Separate unmapped reads with human-mapped mates
+#d1 = "unmapped/{sample}_discordant_unmapped.bam",
+#Separate human-mapped mates
+#d2 = "unmapped/{sample}_discordant_human.bam",
+
 	params:
 		genome_dir = config["genome_dir"],
 		cores = config["cores"]
@@ -61,7 +69,15 @@ rule host_mapping:
 		
 		printf  "\n###Mapping paired reads of {wildcards.sample} to host###\n\n"
 
-		STAR --runThreadN {params.cores} --genomeDir {params.genome_dir} --sjdbGTFfile {params.genome_dir}/*.gtf --sjdbOverhang 150 -- readFilesIn {input} --outSAMtype BAM SortedByCoordinate --outSAMstrandField intronMotif --outFileNamePrefix unmapped/{wildcards.sample}_mapped --quantMode GeneCounts --outSAMunmapped Within
+		STAR \
+			--runThreadN {params.cores} \
+			--genomeDir {params.genome_dir} \
+			--readFilesIn {input.c1} {input.c2} \
+			--outSAMtype BAM SortedByCoordinate \
+			--outSAMstrandField intronMotif \
+			--outFileNamePrefix unmapped/{wildcards.sample}_mapped \
+			--quantMode GeneCounts \
+			--outSAMunmapped Within
 
 		printf  "\n###Mapped paired reads of {wildcards.sample} to host###\n\n"
 
@@ -69,9 +85,16 @@ rule host_mapping:
 
 		printf  "\n###Extracing unmapped reads###\n\n"
 
-		samtools view -b -f 4 unmapped/{wildcards.sample}_mapped.bam > unmapped/{wildcards.sample}_unmapped.bam
-
-		bedtools bamtofastq -i unmapped/{wildcards.sample}_unmapped.bam -fq {output.u1} -fq2 {output.u2}
+		samtools collate -u -O {output.u3} \
+			| samtools fastq \
+				-f 4 \
+				-F 0x900 \
+				-n \
+				-1 {output.u1} \
+				-2 {output.u2} \
+				-0 /dev/null \
+				-s {output.singletons} \
+				-
 
 		rm unmapped/{wildcards.sample}_mappedLog.* unmapped/{wildcards.sample}_mappedSJ.out.tab
 
@@ -108,7 +131,13 @@ rule assembly:
 
 		printf  "\n###De novo assembly of unmapped reads of {wildcards.sample}###\n\n" 
 
-		rnaspades.py -1 {input.u1} -2 {input.u2} -k 51 -o assembly/{wildcards.sample}/ --threads {params.cores} --memory 60 -k {params.kmers} 
+		rnaspades.py \
+			-1 {input.u1} \
+			-2 {input.u2} \
+			-k {params.kmers} \
+			-o assembly/{wildcards.sample}/ \
+			--threads {params.cores} \
+			--memory 24
 
 		mv assembly/{wildcards.sample}/transcripts.fasta {output.a1}
 

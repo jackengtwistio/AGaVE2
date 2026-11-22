@@ -188,17 +188,46 @@ file.to_csv(f'{outdir}{sys.argv[2]}_int_aln.csv',index=False,header=None)
 
 # To get proper chromosome number for GRCh38.p14
 
-def id_chr(id):
-    chr = int(id.split("_")[1].split(".")[0])
+# def id_chr(id):
+#     chr = int(id.split("_")[1].split(".")[0])
 
-    if chr<23:
-        return(str(chr))
-    elif chr==23:
-        return("X")
-    elif chr==24:
-        return("Y")
-    else:
-        return(None)
+#     if chr<23:
+#         return(str(chr))
+#     elif chr==23:
+#         return("X")
+#     elif chr==24:
+#         return("Y")
+#     else:
+#         return(None)
+
+# Updated id_chr. To get proper chromosome number for GRCh38.p14 or CHM13
+def id_chr(reference):
+    if reference.startswith("chr"):
+        chromosome = reference[3:]
+        valid = {str(i) for i in range(1, 23)} | {"X", "Y"}
+        return chromosome if chromosome in valid else None
+
+    if reference.startswith("NC_"):
+        try:
+            number = int(reference.split("_")[1].split(".")[0])
+            if 1 <= number <= 22:
+                return str(number)
+            return {23: "X", 24: "Y"}.get(number)
+        except ValueError:
+            return None
+
+    chm13_map = {
+        "CP068277": "1",  "CP068276": "2",  "CP068275": "3",  "CP068274": "4",
+        "CP068273": "5",  "CP068272": "6",  "CP068271": "7",  "CP068270": "8",
+        "CP068269": "9",  "CP068268": "10", "CP068267": "11", "CP068266": "12",
+        "CP068265": "13", "CP068264": "14", "CP068263": "15", "CP068262": "16",
+        "CP068261": "17", "CP068260": "18", "CP068259": "19", "CP068258": "20",
+        "CP068257": "21", "CP068256": "22", "CP068255": "X",  "CP086569": "Y",
+    }
+    acc = reference.split(".")[0]
+    if acc in chm13_map:
+        return chm13_map[acc]
+    return None
 
 
 
