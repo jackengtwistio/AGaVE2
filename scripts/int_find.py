@@ -1,47 +1,34 @@
-# Importing requiered libraries
-
+#sys --> sys.argv used to access arguments passed to the script through the command line.
 import sys
 
+#SeqIO: Sequence Input/Output; reads and writes biological sequence formats (FASTA, FASTQ and GenBank)
 from Bio import SeqIO
 
 import pandas as pd
 
+#pysam, a Python interface to SAMtools/HTSlib.
 import pysam
 
+#Python's regular expression module
 import re
-
-import pandas as pd
-
 
 
 # Loading gbk annotation file of assembled contigs
-
 aln_file=sys.argv[3]
 
+#SeqIO.parse(...) reads its sequence records. "genbank" specifies the format.
 records = list(SeqIO.parse(sys.argv[1], "genbank"))
 
-
-
-# outdir
-
 outdir = sys.argv[4]
-
 if outdir[-1]!="/":
     outdir = outdir+"/"
 
-
-
 # Creating required dictionaries
-
-strand = {0:1,16:-1,256:1,272:-1,2048:1,2064:-1}
-
-aln = {0:"primary",16:"primary",256:"not primary",272:"not primary",2048:"supplementary",2064:"supplementary"}
-
-mapped = {"M":1,"D":0,"N":0,"I":2,"S":0,"H":0}
-
+#SAM FLAG values are bitwise integers (powers of 2 from 1 to 2048) in column 2 of a SAM/BAM/CRAM file that encode alignment properties of a sequenced read
+strand = {0:1,16:-1,256:1,272:-1,2048:1,2064:-1}# (caveats: never used & these are not complete SAM values) maps to strand directions.
+aln = {0:"primary",16:"primary",256:"not primary",272:"not primary",2048:"supplementary",2064:"supplementary"}#Primary: the alignment designated as primary for the sequence. Secondary: an alternative alignment of the same sequence. Supplementary: an additional alignment representing another part of a chimeric or split alignment.
+mapped = {"M":1,"D":0,"N":0,"I":2,"S":0,"H":0}#assigns custom numeric categories to CIGAR operations.
 keys = list(mapped.keys())
-
-
 
 # Defining a function to interpret cigar
 
@@ -62,24 +49,23 @@ def get_cigar(x):
     
     for i in range(1,len(num)):
         
-        if mapped[aligned[i]] == 2:
-            next        
+        if mapped[aligned[i]] == 2:#whether the current operation is an insertion (I).
+            continue        
         if mapped[aligned[i]] == actual:
-            final[-1]+=int(num[i])
+            final[-1]+=int(num[i])#combines the segment lengths
+
+#Needs review: elif can merge an arbitrarily large number of irrelevant bases, as long as each individual operation has a length of 10 or fewer bases.       
         elif mapped[aligned[i]] != actual and int(num[i]) <= 10:
             final[-1]+=int(num[i])
+#sdeeN
+       
         elif mapped[aligned[i]] != actual and int(num[i]) > 10:
             actual = mapped[aligned[i]]
             final.append(int(num[i]))
             
-    final = list(map(str,final))
-            
-    return(",".join(final))
+    return ",".join(str(x) for x in final)
 
-
-
-# Function to get mapped length in bp from cigar string
-
+# never used; calculates the total number of bases belonging to CIGAR operations classified as 1 (M).
 def get_mapped_len(x):
     num = re.split(r'\D+',x)
     tmp = re.split(r'\d',x)
@@ -94,24 +80,16 @@ def get_mapped_len(x):
     mapped_len = 0
     
     for i in range(0,len(num)):
-        
         if mapped[aligned[i]] == 1:
             mapped_len+=int(num[i])       
-        else:
-            next
             
     return(mapped_len)
 
 
-
 # Importing SAM file to pysam
-
 samfile = pysam.AlignmentFile(aln_file)
 
-
-
 # Creating csv file with alignment information to viral genomes for plotting
-
 sourceFile = open(f'{outdir}{sys.argv[2]}_int_aln.csv', 'w')
 
 for i in range(0,len(samfile.get_index_statistics()),1):
